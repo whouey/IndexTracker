@@ -101,7 +101,7 @@ A simple example is provided in [`here`](./validate.ipynb).
 
 The DAG of MWAA was triggered everyday on 18:00 local time. 
 
-When the data amount goes up like 100 times, or the user to serve increases, the resource used for now is all scalable. However, the overall architecture is not mature enough to be a product.
+When the data amount goes up like 100 times, or the user to serve increases, the resource used for now is all scalable. However, the overall architecture is not mature enough to be a product, maybe a user interface like web is required.
 
 ## References
 

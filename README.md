@@ -45,6 +45,13 @@ The detailed explorations is under [`/DataExploring`](DataExploring/README.md) .
 
 ![Data model.](/assets/data_model.png)
 
+For the goal of this project is to organize the data of indices and different financial instruments together, and reveal the relationship between them.
+
+The schema is in 3-NF for :
++ to clearly show a piece of historical data belongs which contract, derivative, and index, and the relationships of them. 
++ to easily query data of different indices and financial instruments in same scale together. 
+
+The entities:
 + index - main subject of this project, currently contains only 1 record: **TAIEX**.
 + index_history - intraday data of an index.
 + derivative - derivative financial instrument of an index.
@@ -52,6 +59,8 @@ The detailed explorations is under [`/DataExploring`](DataExploring/README.md) .
 + derivative_detail_history - intraday data of an derivative contract.
 
 The DDL script is under [`/sql`](sql/create_tables.sql) .
+
+The data dictionary is provided [`here`](./DataDictionary.md)
 
 ## Setup
 
@@ -87,7 +96,7 @@ But notice that there are some more configurations must be done.
 1. The sources used for the tasks for now is totally overkill, some lighter replacements such as AWS Glue, AWS Athena, AWS Lambda could be taken as consideration.
 2. Monthly contract data redundant when weekly contract, however, considering the data usage, maybe NoSQL approaches is more suitable.
 3. Code can be optimized to be more reuseable. 
-3. To get the true benefit, need more resources and more accumulations.
+4. To get the true benefit, need more resources and more accumulations.
 
 ## Usage
 
@@ -95,13 +104,29 @@ When querying history value of index by name, joined index and index_history tog
 
 When querying history data of a derivative contract by name, must join derivative, derivative_detail, derivative_detail_history.
 
-A simple example is provided in [`here`](./validate.ipynb).
+A regular candle stick diagram can be obtain by a query:
+```sql
+select * 
+from index 
+    join index_history on index.id = index_history.index_id 
+where index.name = 'TAIEX' 
+    and index_history.scale = 5 
+    and datetime between '2022-03-03' and '2022-03-04'
+order by index_history.datetime
+```
+And the diagram would be:
+![sample](/assets/sample_candle.png)
+
+
+To read more, [`check`](./validate.ipynb).
 
 ## Final words
 
-The DAG of MWAA was triggered everyday on 18:00 local time. 
+The DAG of MWAA was triggered everyday on 18:00 local time, for all the data included will be released by then every trading day.
 
-When the data amount goes up like 100 times, or the user to serve increases, the resource used for now is all scalable. However, the overall architecture is not mature enough to be a product, maybe a user interface like web is required.
+When the data amount goes up like 100 times, the resource used for now is all scalable and should works fine. 
+
+While the user to serve increases, or has to fit more scenarios, however, to answer questions more specifically and efficiently, the data model should be transform to another like star-schema, furthermore, a NoSQL approach might be even better.
 
 ## References
 

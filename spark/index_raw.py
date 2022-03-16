@@ -9,6 +9,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("""
         Usage: index_raw.py <ds> 
+        where ds in format year_month_day, e.g., 2021_09_19
         """, file=sys.stderr)
         sys.exit(-1)
 
@@ -41,7 +42,6 @@ if __name__ == "__main__":
     
     df = df.withColumn('index', regexp_replace(col('index'), ',', '').cast(DecimalType(scale=2)))
 
-    # for every batch is very small in size, reduce the partitions to reduce the overhead 
     df.coalesce(1).write.mode('overwrite').parquet(f's3a://indextracker/tw/index/trn/{ds}')
 
     spark.stop()

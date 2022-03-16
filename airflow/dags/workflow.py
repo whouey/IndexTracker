@@ -10,13 +10,42 @@ from helpers import create_staging_table, data_quality_check
 import logging
 
 def tw_year(ds):
+    """
+    year in the form of ROC era.
+
+    args:
+        ds - templated variable 'ds' of airflow
+    return:
+        year of ROC as int
+    """
     return datetime.strptime(ds, '%Y-%m-%d').year - 1911
 
 def ds_underscore(ds):
+    """
+    ds but separated by underscore
+
+    args:
+        ds - templated variable 'ds' of airflow
+    return:
+        ds in the form of "yyyy_MM_dd" 
+    """
     from airflow.macros import ds_format
     return ds_format(ds, "%Y-%m-%d", "%Y_%m_%d")
 
 def check_s3_key(aws_conn_id, bucket, key, true_path, false_path):
+    """
+    a function called by a branch operator,
+    which check a key of s3 existed.
+
+    args: 
+        aws_conn_id - the connection variable id of aws
+        bucker - target bucket name
+        key - target s3 object key
+        true_path - the task name should be returned when key existed
+        false_path - the task name should be returned when key not existed
+    return:
+        a path either true_path or false_path
+    """
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
     s3 = S3Hook(aws_conn_id = aws_conn_id)
@@ -26,6 +55,16 @@ def check_s3_key(aws_conn_id, bucket, key, true_path, false_path):
         return false_path
 
 def download_file_to_s3(aws_conn_id, bucket, key, url, expected_content_type=None):
+    """
+    download and upload a file to S3 on the fly
+
+    args:
+        aws_conn_id - the connection variable id of aws
+        bucker - target bucket name
+        key - target s3 object key
+        url - location of target file
+        expected_content_type - http content-type, use to validate the result
+    """
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
     from airflow.exceptions import AirflowNotFoundException
     import urllib.request
@@ -41,6 +80,16 @@ def download_file_to_s3(aws_conn_id, bucket, key, url, expected_content_type=Non
         s3.load_file_obj(response, key, bucket)
 
 def check_is_trading_day(aws_conn_id, bucket, key, **context):
+    """
+    check schedule file on S3 if `ds` in trading day
+
+    args:
+        aws_conn_id - the connection variable id of aws
+        bucker - target bucket name
+        key - target s3 object key
+    return:
+        a bool value if `ds` is trading day.
+    """
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
     import pandas as pd
 
@@ -68,10 +117,24 @@ def check_is_trading_day(aws_conn_id, bucket, key, **context):
         return ds.weekday() < 5
 
 def check_emr_cluster(aws_conn_id, cluster_name, true_path, false_path, **context):
+    """
+    a function called by a branch operator.
+    check if a emr cluster existed by name, and return a path.
+
+    args:
+        aws_conn_id - the connection variable id of aws
+        cluster_name - target cluster name
+        true_path - the task name should be returned when key existed
+        false_path - the task name should be returned when key not existed
+    return:
+        a path either true_path or false_path
+    """
     from airflow.providers.amazon.aws.hooks.emr import EmrHook
 
     emr = EmrHook(aws_conn_id = aws_conn_id)
     
+    # any state except TERMINATING and TERMINATED and TERMINATED_WITH_ERRORS
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/emr.html#EMR.Client.list_clusters
     job_flow_id = emr.get_cluster_id_by_name(cluster_name, \
                         cluster_states=['STARTING','BOOTSTRAPPING','RUNNING','WAITING'])
 
@@ -82,6 +145,16 @@ def check_emr_cluster(aws_conn_id, cluster_name, true_path, false_path, **contex
         return false_path
 
 def create_emr_cluster(aws_conn_id, emr_conn_id, job_flow_overrides, **context):
+    """
+    create a emr cluster
+
+    args:
+        aws_conn_id - the connection variable id of aws
+        cluster_name - target cluster name
+        job_flow_overrides - a dict contains configurations overrides the 'Extra` in emr connection variable 
+    return:
+        job flow id created
+    """
     from airflow.providers.amazon.aws.hooks.emr import EmrHook
     from airflow.exceptions import AirflowException
 
@@ -96,6 +169,16 @@ def create_emr_cluster(aws_conn_id, emr_conn_id, job_flow_overrides, **context):
     context['ti'].xcom_push(key='job_flow_id', value=job_flow_id)
 
 def add_steps_to_emr_cluster(aws_conn_id, job_flow_id, steps):
+    """
+    add steps a emr cluster
+
+    args:
+        aws_conn_id - the connection variable id of aws
+        job_flow_id - the id of target emr cluster
+        steps - a dict contains the steps to be added
+    return:
+        the id of last step added, for the use of waited
+    """
     from airflow.providers.amazon.aws.hooks.emr import EmrHook
     from airflow.exceptions import AirflowException
 
@@ -111,22 +194,31 @@ def add_steps_to_emr_cluster(aws_conn_id, job_flow_id, steps):
 
     return response['StepIds'][-1]
 
-def get_job_steps(subject, ds):
+def get_job_steps(subject, ds_underscore):
+    """
+    a helper function to generate steps dict by subject name and ds
+
+    args:
+        subject - the name of target subject
+        ds_underscore - the ds but should be underscored
+    return:
+        a dict of steps
+    """
     return [
         {
-            'Name': f'Run Spark {subject} raw {ds}',
+            'Name': f'Run Spark {subject} raw {ds_underscore}',
             'ActionOnFailure': 'CONTINUE',
             'HadoopJarStep': {
                 'Jar': 'command-runner.jar',
-                'Args': ['spark-submit', f'/home/hadoop/{subject}_raw.py', ds]
+                'Args': ['spark-submit', f'/home/hadoop/{subject}_raw.py', ds_underscore]
             }
         },
         {
-            'Name': f'Run Spark {subject} agg {ds}',
+            'Name': f'Run Spark {subject} agg {ds_underscore}',
             'ActionOnFailure': 'CONTINUE',
             'HadoopJarStep': {
                 'Jar': 'command-runner.jar',
-                'Args': ['spark-submit', f'/home/hadoop/{subject}_agg.py', ds]
+                'Args': ['spark-submit', f'/home/hadoop/{subject}_agg.py', ds_underscore]
             }
         }
     ]
@@ -396,8 +488,8 @@ with DAG(
         load_data = PostgresOperator(
             task_id=f'load_data_{subject}',
             postgres_conn_id='postgres_default',
-            sql=f'\\includes\\load_{subject}.sql',
-            parameters={'table_name': table_name}
+            sql=f'load_{subject}.sql',
+            params={'subject': subject}
         )
 
         # trigger drop even upstream failed

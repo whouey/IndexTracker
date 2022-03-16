@@ -15,4 +15,9 @@ class IndexTrackerPlugin(AirflowPlugin):
         helpers.create_staging_table_etf,
         helpers.create_staging_table_futures,
         helpers.create_staging_table_options,
+        helpers.data_quality_check,
+        helpers.data_quality_check_index,
+        helpers.data_quality_check_etf,
+        helpers.data_quality_check_futures,
+        helpers.data_quality_check_options,
     ]

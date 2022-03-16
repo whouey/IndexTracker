@@ -9,6 +9,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("""
         Usage: etf_raw.py <ds> 
+        where ds in format year_month_day, e.g., 2021_09_19
         """, file=sys.stderr)
         sys.exit(-1)
 
@@ -55,7 +56,6 @@ if __name__ == "__main__":
             .withColumn('datetime', date_trunc('second', col('datetime'))) \
             .drop('date', 'time')
 
-    # for every batch is very small in size, reduce the partitions to reduce the overhead 
     df.coalesce(1).write.mode('overwrite').parquet(f's3a://indextracker/tw/etf/trn/{ds}')
 
     spark.stop()

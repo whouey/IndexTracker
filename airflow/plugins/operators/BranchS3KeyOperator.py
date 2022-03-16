@@ -3,8 +3,7 @@ from typing import Dict, Iterable, Union
 
 class BranchS3KeyOperator(BaseBranchOperator):
     """
-    
-    
+    THIS CLASS IS UNDER DEVELOPING.
     """
 
     def choose_branch(self, context: Dict) -> Union[str, Iterable[str]]:

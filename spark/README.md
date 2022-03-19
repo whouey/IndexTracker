@@ -8,12 +8,8 @@ Below was how the project be integrated.
 
 1. Have docker installed.
 2. Add pyspark-easy-start as a git submodule under `/spark/pyspark-easy-start`.
-3. Modify `docker-compose.yml`: set `volumes:` to `..:/app`
-4. Open command prompt, change working directory to `pyspark-easy-start`.
-5. Run cluster up by `docker-compose up -d`
-6. Run commands inside container `work-env` by `docker-compose exec work-env <command>`, that is, run scripts in spark using one of those: 
-    + `docker-compose exec work-env python <filename>.py [args]`
-    + `docker-compose exec work-env spark-submit <filename>.py [args]`
+3. Open command prompt, kick-off spark by running script : `run_spark.sh`
+4. Run scripts by the command : `run_script.sh <filename>.py [args]`
 
 ## Notice
 

@@ -1,0 +1,10 @@
+services:
+  spark:
+    volumes:
+      - ../scripts:/app
+  spark-worker-1:
+    volumes:
+      - ../scripts:/app
+  work-env:
+    volumes:
+      - ../scripts:/app

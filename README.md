@@ -20,7 +20,7 @@ There is only very little financial knowledge covered.
 ![Components on AWS.](/assets/aws_architect.png)
 
 Resource used:
-+ Amazon Managed Workflow Apache Airflow (MWAA) 
++ Amazon Managed Workflows for Apache Airflow (MWAA) 
 + Amazon Simple Storage Service (S3) 
 + Amazon Elastic MapReduce (EMR) 
 + Amazon Redshift 
